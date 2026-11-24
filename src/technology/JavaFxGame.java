@@ -13,7 +13,8 @@ public final class JavaFxGame extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        Board board = new Board(new BasicRandomizer());
+        String selection = getParameters().getNamed().getOrDefault("randomizer", RandomizerKind.LXM.name());
+        Board board = new Board(RandomizerKind.valueOf(selection).create());
         board.generateBoard();
 
         JavaFxDisplay display = new JavaFxDisplay(board);

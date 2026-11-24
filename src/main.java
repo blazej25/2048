@@ -3,33 +3,41 @@ import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
 import engine.Board;
 import engine.Game2048;
 import javafx.application.Application;
-import technology.BasicRandomizer;
 import technology.JavaFxGame;
+import technology.Randomizer;
+import technology.RandomizerKind;
 import technology.TerminalDisplay;
 import technology.TerminalInput;
-import technology.TerminalModeMenu;
+import technology.TerminalMenu;
+import technology.TerminalMenu.Choice;
 
 import java.io.IOException;
 
 public class main {
 
     public static void main(String[] args) throws IOException {
-        TerminalModeMenu.Mode mode;
+        RandomizerKind randomizer;
         try (Screen screen = new DefaultTerminalFactory().createScreen()) {
             screen.startScreen();
-            mode = new TerminalModeMenu(screen).select();
-            if (mode == TerminalModeMenu.Mode.TERMINAL) {
-                runTerminal(screen);
+            TerminalMenu menu = new TerminalMenu(screen);
+            Choice mode = menu.select("Choose a mode", "Terminal", "GUI");
+            if (mode == Choice.EXIT) return;
+
+            Choice selection = menu.select("Choose a randomizer", "LXM (recommended)", "Classic (Java Random)");
+            if (selection == Choice.EXIT) return;
+
+            randomizer = selection == Choice.FIRST ? RandomizerKind.LXM : RandomizerKind.CLASSIC;
+            if (mode == Choice.FIRST) {
+                runTerminal(screen, randomizer.create());
+                return;
             }
         }
 
-        if (mode == TerminalModeMenu.Mode.GUI) {
-            Application.launch(JavaFxGame.class);
-        }
+        Application.launch(JavaFxGame.class, "--randomizer=" + randomizer.name());
     }
 
-    private static void runTerminal(Screen screen) throws IOException {
-        Board board = new Board(new BasicRandomizer());
+    private static void runTerminal(Screen screen, Randomizer randomizer) throws IOException {
+        Board board = new Board(randomizer);
         board.generateBoard();
 
         TerminalDisplay display = new TerminalDisplay(screen, screen.newTextGraphics(), board);

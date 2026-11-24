@@ -8,7 +8,7 @@ import java.util.function.BiFunction;
 public class Board {
 
     private List<List<Integer>> board;
-    private Randomizer randomizer;
+    private final Randomizer randomizer;
     private int highest;
 
     public Board(Randomizer randomizer) {
@@ -100,18 +100,19 @@ public class Board {
     }
 
     public Cell addNewCell() {
-        if (board.stream().noneMatch(row -> row.contains(0))) return null;
-
-        int x = randomizer.getRandomCoordinate();
-        int y = randomizer.getRandomCoordinate();
-
-        while (board.get(y).get(x) != 0) {
-            x = randomizer.getRandomCoordinate();
-            y = randomizer.getRandomCoordinate();
+        List<Cell> emptyCells = new ArrayList<>();
+        for (int row = 0; row < board.size(); row++) {
+            for (int column = 0; column < board.get(row).size(); column++) {
+                if (getValue(row, column) == 0) {
+                    emptyCells.add(new Cell(row, column));
+                }
+            }
         }
+        if (emptyCells.isEmpty()) return null;
 
-        board.get(y).set(x, randomizer.getRandomValue());
-        return new Cell(y, x);
+        Cell cell = emptyCells.get(randomizer.getRandomIndex(emptyCells.size()));
+        board.get(cell.row()).set(cell.column(), randomizer.getRandomValue());
+        return cell;
     }
 
     public int getValue(int row, int column) {
