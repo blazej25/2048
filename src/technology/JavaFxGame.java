@@ -4,6 +4,7 @@ import engine.Board;
 import engine.Game2048;
 import javafx.application.Application;
 import javafx.scene.Scene;
+import javafx.scene.input.KeyCode;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -21,6 +22,12 @@ public final class JavaFxGame extends Application {
         JavaFxInput input = new JavaFxInput();
         Game2048 game = new Game2048(board, display, input);
         Scene scene = new Scene(display.getView());
+        scene.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                event.consume();
+                stage.close();
+            }
+        });
 
         input.listen(scene, () -> display.whenReady(() -> {
             try {
@@ -31,7 +38,7 @@ public final class JavaFxGame extends Application {
         }));
 
         game.start();
-        stage.setTitle("2048");
+        stage.setTitle(BoardTheme.TITLE);
         stage.setScene(scene);
         stage.setResizable(false);
         stage.show();

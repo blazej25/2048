@@ -16,23 +16,20 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static technology.BoardTheme.SIZE;
+
 public final class TerminalDisplay implements Display {
 
-    private static final int SIZE = 4;
-    private static final TextColor INK = color(20, 18, 29);
-    private static final TextColor PANEL = color(32, 29, 44);
-    private static final TextColor SLOT = color(49, 44, 63);
-    private static final TextColor BORDER = color(102, 88, 120);
-    private static final TextColor MUTED = color(195, 179, 205);
-    private static final TextColor PAPER = color(255, 247, 229);
-    private static final TextColor GOLD = color(255, 199, 105);
-    private static final TextColor FLASH = color(255, 228, 155);
-    private static final TextColor[] TILE_COLORS = {
-            color(241, 223, 202), color(255, 202, 133), color(245, 161, 114),
-            color(233, 129, 121), color(222, 119, 159), color(206, 148, 227),
-            color(176, 169, 247), color(137, 192, 244), color(123, 223, 216),
-            color(160, 227, 173), GOLD
-    };
+    private static final TextColor INK = TextColor.Factory.fromString(BoardTheme.INK);
+    private static final TextColor PANEL = TextColor.Factory.fromString(BoardTheme.PANEL);
+    private static final TextColor SLOT = TextColor.Factory.fromString(BoardTheme.SLOT);
+    private static final TextColor BORDER = TextColor.Factory.fromString(BoardTheme.BORDER);
+    private static final TextColor MUTED = TextColor.Factory.fromString(BoardTheme.MUTED);
+    private static final TextColor PAPER = TextColor.Factory.fromString(BoardTheme.PAPER);
+    private static final TextColor GOLD = TextColor.Factory.fromString(BoardTheme.GOLD);
+    private static final TextColor FLASH = TextColor.Factory.fromString(BoardTheme.FLASH);
+    private static final List<TextColor> TILE_COLORS = BoardTheme.TILE_COLORS.stream()
+            .map(TextColor.Factory::fromString).toList();
 
     private final Screen screen;
     private final TextGraphics graphics;
@@ -109,21 +106,21 @@ public final class TerminalDisplay implements Display {
     }
 
     private void playIntro() throws IOException {
-        int[] digits = {2, 0, 4, 8};
-        int fallFrames = 18;
-        int staggerFrames = 4;
-        int lastFrame = fallFrames + (digits.length - 1) * staggerFrames;
-        for (int frame = 0; frame <= lastFrame; frame++) {
+        int frameMs = 45;
+        int end = BoardTheme.INTRO_FALL_MS + (SIZE - 1) * BoardTheme.INTRO_STAGGER_MS;
+        for (int elapsed = 0; elapsed <= end; elapsed += frameMs) {
             List<Tile> tiles = new ArrayList<>();
             for (int column = 0; column < SIZE; column++) {
-                double time = Math.clamp((frame - column * staggerFrames) / (double) fallFrames, 0, 1);
+                double time = Math.clamp((elapsed - column * BoardTheme.INTRO_STAGGER_MS)
+                        / (double) BoardTheme.INTRO_FALL_MS, 0, 1);
                 double row = -1 + 3 * time * time;
-                tiles.add(new Tile(digits[column], row, column, time == 1));
+                int digit = Character.digit(BoardTheme.TITLE.charAt(column), 10);
+                tiles.add(new Tile(digit, row, column, time == 1));
             }
             drawFrame(tiles, true);
-            pause(45);
+            pause(frameMs);
         }
-        pause(1100);
+        pause(BoardTheme.INTRO_HOLD_MS);
     }
 
     private List<Tile> slidingTiles(List<TileMove> moves, double progress) {
@@ -166,8 +163,8 @@ public final class TerminalDisplay implements Display {
         int rows = size.getRows();
         if (columns < 31 || rows < 13) return null;
 
-        int tileWidth = Math.min(9, (columns - 7) / SIZE);
-        int tileHeight = rows >= 21 ? 3 : rows >= 17 ? 2 : 1;
+        int tileWidth = Math.min(BoardTheme.TILE_COLUMNS, (columns - 7) / SIZE);
+        int tileHeight = rows >= 21 ? BoardTheme.TILE_ROWS : rows >= 17 ? 2 : 1;
         int width = SIZE * (tileWidth + 1) + 3;
         int height = SIZE * (tileHeight + 1) + 5;
         return new Layout((columns - width) / 2, (rows - height) / 2, tileWidth, tileHeight);
@@ -210,11 +207,11 @@ public final class TerminalDisplay implements Display {
         }
 
         if (!intro) {
-            String best = "HIGHEST  " + highest;
-            write(x + 2, y + 1, " 2048 ", INK, GOLD, SGR.BOLD);
+            String best = BoardTheme.HIGHEST + highest;
+            write(x + 2, y + 1, " " + BoardTheme.TITLE + " ", INK, GOLD, SGR.BOLD);
             write(x + width - 2 - best.length(), y + 1, best, PAPER, PANEL, SGR.BOLD);
         }
-        String controls = "↑ ↓ ← →  Move   Esc  Quit";
+        String controls = BoardTheme.CONTROLS;
         write(x + (width - controls.length()) / 2, y + height - 2, controls, MUTED, PANEL);
 
         for (int row = 0; row < SIZE; row++) {
@@ -233,8 +230,7 @@ public final class TerminalDisplay implements Display {
         int visibleTop = Math.max(top, y);
         if (bottom <= visibleTop) return;
 
-        int index = Math.clamp(Integer.numberOfTrailingZeros(tile.value()) - 1, 0, TILE_COLORS.length - 1);
-        TextColor background = tile.lit() ? FLASH : TILE_COLORS[index];
+        TextColor background = tile.lit() ? FLASH : TILE_COLORS.get(BoardTheme.tileColorIndex(tile.value()));
         fill(x, visibleTop, layout.tileWidth(), bottom - visibleTop, background);
 
         int textRow = y + layout.tileHeight() / 2;
@@ -255,10 +251,6 @@ public final class TerminalDisplay implements Display {
     private void write(int x, int y, String text, TextColor foreground, TextColor background, SGR... modifiers) {
         graphics.setForegroundColor(foreground).setBackgroundColor(background).clearModifiers();
         graphics.enableModifiers(modifiers).putString(x, y, text);
-    }
-
-    private static TextColor color(int red, int green, int blue) {
-        return new TextColor.RGB(red, green, blue);
     }
 
     private static void pause(long milliseconds) {
